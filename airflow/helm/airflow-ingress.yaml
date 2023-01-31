@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: airflow-ingress
+  namespace: canwang
+  annotations:
+    kubernetes.io/ingress.class: ack-nginx
+spec:
+  rules:
+    - host: airflow.staging.lululemon.cn
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: airflow
+                port:
+                  number: 8080

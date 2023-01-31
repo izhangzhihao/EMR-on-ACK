@@ -1,0 +1,98 @@
+# https://github.com/bitnami/charts/tree/master/bitnami/airflow
+# for airflow 2.5.0
+
+global:
+  storageClass: alicloud-disk-efficiency
+
+# 使用常驻/k8s动态混合的Executor(类似于jenkins的agent)
+executor: "CeleryKubernetesExecutor"
+
+# CeleryKubernetesExecutor所需的两个配置
+rbac:
+  create: true
+serviceAccount:
+  create: true
+
+# 登录airflowweb的用户名密码
+auth:
+  username: lllm
+  password:
+
+extraEnvVars:
+    # 把jobmanager repo里的python code加入到python path中 aid-recomm对应git.dags.repositories[0].name配置项
+#  - name: PYTHONPATH
+#    value: "/opt/bitnami/airflow/dags/git_aid-recomm/dags"
+
+    # 开启api basic auth,主要为data service通过api访问airflow服务
+  - name: AIRFLOW__API__AUTH_BACKEND
+    value: "airflow.api.auth.backend.basic_auth"
+
+    # 使用oss存储airflow日志
+#  - name: AIRFLOW__LOGGING__REMOTE_LOGGING
+#    value: "True"
+#  - name: AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER
+#    value: "s3://dp-airflow-log"
+#    # 需要在airflow中配置对应的connections才能生效
+#  - name: AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID
+#    value: "airflow-log-conn"
+
+git:
+  sync:
+    interval: 60
+  dags:
+    enabled: true
+    repositories:
+      - repository: "https://github.com/izhangzhihao/EMR-on-ACK.git"
+        branch: main
+        name: data-lake
+        path: airflow
+
+# 不加载airflow实例DAG
+loadExamples: false
+
+worker:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: "1"
+      memory: "2Gi"
+  # 为worker增加oss配置的环境变量(graphsage等步骤需要)
+#  extraEnvVarsSecret: "airflow-oss-config"
+
+
+web:
+  resources:
+    requests:
+      cpu: "1"
+      memory: "2Gi"
+  # 同ingress的url
+#  baseUrl: "http://airflow.ce1710b9e40264b929e9c943426dcf244.cn-shanghai.alicontainer.com"
+
+postgresql:
+  enabled: true
+  auth:
+    username: bn_airflow
+    password:
+  primary:
+    persistence:
+      size: 50Gi
+  resources:
+    requests:
+      cpu: "1"
+      memory: "1Gi"
+
+
+redis:
+  enabled: true
+  auth:
+    password:
+  master:
+    persistence:
+      ## 阿里云 essd最小20G 小于20G pvc将不能正常的bound pv
+      size: 20Gi
+
+#ingress:
+#  enabled: true
+#  hosts:
+#    - name: "airflow.ce1710b9e40264b929e9c943426dcf244.cn-shanghai.alicontainer.com"
+#      path: /
